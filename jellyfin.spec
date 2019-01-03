@@ -20,15 +20,16 @@ Source5:        https://github.com/mono/taglib-sharp/archive/%{taglib_commit}/ta
 %{?systemd_requires}
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
-BuildRequires:  libcurl-devel, fontconfig-devel, freetype-devel, openssl-devel, glibc-devel
-Requires:       libcurl, fontconfig, freetype, openssl, glibc
+BuildRequires:  libcurl-devel, fontconfig-devel, freetype-devel, openssl-devel, glibc-devel, libicu-devel
+Requires:       libcurl, fontconfig, freetype, openssl, glibc libicu
 # Requirements not packaged in main repos
 # COPR @dotnet-sig/dotnet
 BuildRequires:  dotnet-sdk-2.2
-Requires:       dotnet-runtime-2.2
 # RPMfusion free
 Requires:       ffmpeg
 
+# Fedora has openssl1.1 which is incompatible with dotnet 
+%{?fedora:Requires: compat-openssl10}
 # Disable Automatic Dependency Processing for Centos
 %{?el7:AutoReqProv: no}
 
@@ -58,8 +59,7 @@ dotnet publish --configuration Release --output='%{buildroot}%{_libdir}/jellyfin
 %{__mkdir} -p %{buildroot}%{_bindir}
 tee %{buildroot}%{_bindir}/jellyfin << EOF
 #!/bin/sh
-dotnet_cmd=\$(command -v dotnet)
-exec \$dotnet_cmd %{_libdir}/%{name}/%{name}.dll \${@}
+exec %{_libdir}/%{name}/%{name} \${@}
 EOF
 %{__mkdir} -p %{buildroot}%{_sharedstatedir}/jellyfin
 %{__install} -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/%{name}.service
