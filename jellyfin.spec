@@ -29,6 +29,9 @@ Requires:       dotnet-runtime-2.2
 # RPMfusion free
 Requires:       ffmpeg
 
+# Disable Automatic Dependency Processing for Centos
+%{?el7:AutoReqProv: no}
+
 %description
 Jellyfin is a free software media system that puts you in control of managing and streaming your media.
 
