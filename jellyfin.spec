@@ -43,10 +43,12 @@ popd
 
 %build
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
+export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
 dotnet build --runtime linux-x64
 
 %install
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
+export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
 dotnet publish --configuration Release --output='%{buildroot}%{_libdir}/jellyfin' --self-contained --runtime linux-x64
 %{__install} -D -m 0644 LICENSE %{buildroot}%{_datadir}/licenses/%{name}/LICENSE
 %{__install} -D -m 0644 debian/conf/jellyfin.service.conf %{buildroot}%{_sysconfdir}/systemd/system/%{name}.service.d/override.conf
@@ -78,9 +80,12 @@ EOF
 %attr(750,root,root) %{_libexecdir}/%{name}/restart.sh
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 %config(noreplace) %{_sysconfdir}/systemd/system/%{name}.service.d/override.conf
-
 %attr(-,jellyfin,jellyfin) %dir %{_sharedstatedir}/jellyfin
+%if 0%{?fedora}
 %license LICENSE
+%else
+%{_datadir}/licenses/%{name}/LICENSE
+%endif
 
 %pre
 getent group jellyfin >/dev/null || groupadd -r jellyfin
