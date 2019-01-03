@@ -89,5 +89,5 @@ exit 0
 %systemd_postun_with_restart jellyfin.service
 
 %changelog
-* Do Jan 03 2019 Thomas Büttner <thomas@vergesslicher.tech> 3.5.2
+* Thu Jan 03 2019 Thomas Büttner <thomas@vergesslicher.tech> 3.5.2-1
 - Initial RPM package
