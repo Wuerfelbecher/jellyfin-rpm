@@ -1,0 +1,32 @@
+# Repos for mock
+[group_dotnet-sig-dotnet]
+name=Copr repo for dotnet owned by @dotnet-sig
+baseurl=https://copr-be.cloud.fedoraproject.org/results/@dotnet-sig/dotnet/fedora-$releasever-$basearch/
+type=rpm-md
+skip_if_unavailable=True
+gpgcheck=1
+gpgkey=https://copr-be.cloud.fedoraproject.org/results/@dotnet-sig/dotnet/pubkey.gpg
+repo_gpgcheck=0
+enabled=1
+enabled_metadata=1
+
+[rpmfusion-free]
+name=RPM Fusion for Fedora $releasever - Free
+metalink=https://mirrors.rpmfusion.org/metalink?repo=free-fedora-$releasever&arch=$basearch
+enabled=1
+metadata_expire=14d
+type=rpm-md
+gpgcheck=0
+repo_gpgcheck=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-free-fedora-$releasever
+
+[rpmfusion-free-updates]
+name=RPM Fusion for Fedora $releasever - Free - Updates
+metalink=https://mirrors.rpmfusion.org/metalink?repo=free-fedora-updates-released-$releasever&arch=$basearch
+enabled=1
+enabled_metadata=1
+type=rpm-md
+gpgcheck=0
+repo_gpgcheck=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-free-fedora-$releasever
+
