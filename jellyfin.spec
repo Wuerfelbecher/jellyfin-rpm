@@ -117,6 +117,7 @@ and uncomment JELLYFIN_RESTART_OPT in %{_sysconfdir}/sysconfig/%{name} \e[0m" >>
 %changelog
 * Fri Jan 04 2019 Thomas Büttner <thomas@vergesslicher.tech> - 3.5.2-2
 - Moved sudoers policy and added a note for In-App service control
+- Set Restart=on-failure in jellyfin.service
 
 * Thu Jan 03 2019 Thomas Büttner <thomas@vergesslicher.tech> - 3.5.2-1
 - Initial RPM package
