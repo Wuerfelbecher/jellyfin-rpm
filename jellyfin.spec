@@ -1,9 +1,12 @@
 %global         debug_package %{nil}
+# jellyfin commit to package
 %global         commit f8a720d3d8adbdb1f092a42e592dae37ba3f25bb
 %global         gittag v3.5.2-5
 %global         shortcommit %(c=%{commit}; echo ${c:0:7}) 
+# Taglib-sharp commit of the submodule since github archive doesn't include submodules
 %global         taglib_commit ee5ab21742b71fd1b87ee24895582327e9e04776
 %global         taglib_shortcommit %(c=%{taglib_commit}; echo ${c:0:7})
+
 Name:           jellyfin
 Version:        3.5.2.git%{shortcommit}
 Release:        3%{?dist}
@@ -30,7 +33,7 @@ BuildRequires:  dotnet-sdk-2.2
 Requires:       ffmpeg
 
 # For the update-db-paths.sh script to fix emby paths to jellyfin
-Recommends: sqlite
+%{?fedora:Recommends: sqlite}
 
 # Fedora has openssl1.1 which is incompatible with dotnet 
 %{?fedora:Requires: compat-openssl10}

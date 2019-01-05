@@ -4,7 +4,7 @@
 
 ## ffmpeg
 
-The RPM package for Fedora/CentOS requires some additional repos aa ffmpeg is not in the main repositories.
+The RPM package for Fedora/CentOS requires some additional repos as ffmpeg is not in the main repositories.
 
 ```shell
 # ffmpeg from RPMfusion free
@@ -21,11 +21,12 @@ Use `install -D -m 0600 -o root -g root /usr/share/jellyfin/jellyfin-sudoers /et
 Finally uncomment JELLYFIN_RESTART_OPT in /etc/sysconfig/jellyfin and restart the service.
 
 ## Database patching
+You may need to install sqlite since CentOS has no `Recommends:` with `yum install sqlite`.
 To fix the paths in the emby database for a migration to jellyfin run the script:
 ```shell
 /usr/share/jellyfin/update-db-paths.sh <path-to-library.db> <path-to-emby-data> <path-to-jellyfin-data>
 ```
-PS: Please backup your emby-data beforehand.
+PS: Please **backup your emby database beforehand**.
 
 ## Building with dotnet
 
@@ -41,5 +42,4 @@ $ sudo rpm -Uvh https://packages.microsoft.com/config/rhel/7/packages-microsoft-
 
 ## TODO
 
-- [x] CentOS/RHEL - Package
 - [ ] OpenSUSE
