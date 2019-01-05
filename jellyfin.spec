@@ -6,7 +6,7 @@
 %global         taglib_shortcommit %(c=%{taglib_commit}; echo ${c:0:7})
 Name:           jellyfin
 Version:        3.5.2.git%{shortcommit}
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        The Free Software Media Browser.
 License:        GPLv2
 URL:            https://jellyfin.media
@@ -16,6 +16,7 @@ Source2:        jellyfin.env
 Source3:        jellyfin.sudoers
 Source4:        restart.sh
 Source5:        https://github.com/mono/taglib-sharp/archive/%{taglib_commit}/taglib-sharp-%{taglib_shortcommit}.tar.gz
+Source6:        update-db.sh
 
 %{?systemd_requires}
 BuildRequires:  systemd
@@ -27,6 +28,9 @@ Requires:       libcurl, fontconfig, freetype, openssl, glibc libicu
 BuildRequires:  dotnet-sdk-2.2
 # RPMfusion free
 Requires:       ffmpeg
+
+# For the update-db-paths.sh script to fix emby paths to jellyfin
+Recommends: sqlite
 
 # Fedora has openssl1.1 which is incompatible with dotnet 
 %{?fedora:Requires: compat-openssl10}
@@ -66,6 +70,7 @@ EOF
 %{__install} -D -m 0644 %{SOURCE2} %{buildroot}%{_sysconfdir}/sysconfig/%{name}
 %{__install} -D -m 0600 %{SOURCE3} %{buildroot}%{_datadir}/%{name}/%{name}-sudoers
 %{__install} -D -m 0750 %{SOURCE4} %{buildroot}%{_libexecdir}/%{name}/restart.sh
+%{__install} -D -m 0755 %{SOURCE6} %{buildroot}%{_libexecdir}/%{name}/update-db-paths.sh
 
 %files
 %{_libdir}/%{name}/dashboard-ui/*
@@ -80,6 +85,7 @@ EOF
 %attr(644,root,root) %{_libdir}/%{name}/sosdocsunix.txt
 %attr(644,root,root) %{_unitdir}/%{name}.service
 %attr(600,root,root) %{_datadir}/%{name}/%{name}-sudoers
+%attr(755,root,root) %{_datadir}/%{name}/update-db-paths.sh
 %attr(750,root,root) %{_libexecdir}/%{name}/restart.sh
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 %config(noreplace) %{_sysconfdir}/systemd/system/%{name}.service.d/override.conf
@@ -115,6 +121,9 @@ install -D -m 0600 %{_datadir}/%{name}/%{name}-sudoers %{_sysconfdir}/sudoers.d/
 and uncomment JELLYFIN_RESTART_OPT in %{_sysconfdir}/sysconfig/%{name} \e[0m" >> /dev/stderr
 
 %changelog
+* Sat Jan 05 2019 Thomas Büttner <thomas@vergesslicher.tech> - 3.5.2-3
+- Added script for database migration
+
 * Fri Jan 04 2019 Thomas Büttner <thomas@vergesslicher.tech> - 3.5.2-2
 - Moved sudoers policy and added a note for In-App service control
 - Set Restart=on-failure in jellyfin.service

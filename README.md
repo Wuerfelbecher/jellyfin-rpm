@@ -1,5 +1,7 @@
 # unoffical jellyfin RPM
 
+<a href="https://copr.fedorainfracloud.org/coprs/wuerfelbecher/jellyfin/package/jellyfin/"><img src="https://copr.fedorainfracloud.org/coprs/wuerfelbecher/jellyfin/package/jellyfin/status_image/last_build.png" /></a>
+
 ## ffmpeg
 
 The RPM package for Fedora/CentOS requires some additional repos aa ffmpeg is not in the main repositories.
@@ -18,6 +20,12 @@ A sample sudoers-policy is located at `/usr/share/jellyfin/jellyfin-sudoers` whi
 Use `install -D -m 0600 -o root -g root /usr/share/jellyfin/jellyfin-sudoers /etc/sudoers.d/jellyfin-sudoers` for the right permissions.
 Finally uncomment JELLYFIN_RESTART_OPT in /etc/sysconfig/jellyfin and restart the service.
 
+## Database patching
+To fix the paths in the emby database for a migration to jellyfin run the script:
+```shell
+/usr/share/jellyfin/update-db-paths.sh <path-to-library.db> <path-to-emby-data> <path-to-jellyfin-data>
+```
+PS: Please backup your emby-data beforehand.
 
 ## Building with dotnet
 
