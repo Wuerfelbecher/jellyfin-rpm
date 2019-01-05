@@ -70,7 +70,7 @@ EOF
 %{__install} -D -m 0644 %{SOURCE2} %{buildroot}%{_sysconfdir}/sysconfig/%{name}
 %{__install} -D -m 0600 %{SOURCE3} %{buildroot}%{_datadir}/%{name}/%{name}-sudoers
 %{__install} -D -m 0750 %{SOURCE4} %{buildroot}%{_libexecdir}/%{name}/restart.sh
-%{__install} -D -m 0755 %{SOURCE6} %{buildroot}%{_libexecdir}/%{name}/update-db-paths.sh
+%{__install} -D -m 0755 %{SOURCE6} %{buildroot}%{_datadir}/%{name}/update-db-paths.sh
 
 %files
 %{_libdir}/%{name}/dashboard-ui/*
