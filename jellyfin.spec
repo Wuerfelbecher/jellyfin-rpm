@@ -20,6 +20,7 @@ Source3:        jellyfin.sudoers
 Source4:        restart.sh
 Source5:        https://github.com/mono/taglib-sharp/archive/%{taglib_commit}/taglib-sharp-%{taglib_shortcommit}.tar.gz
 Source6:        update-db.sh
+Source7:        jellyfin-firewalld.xml
 
 %{?systemd_requires}
 BuildRequires:  systemd
@@ -71,9 +72,10 @@ EOF
 %{__mkdir} -p %{buildroot}%{_sharedstatedir}/jellyfin
 %{__install} -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/%{name}.service
 %{__install} -D -m 0644 %{SOURCE2} %{buildroot}%{_sysconfdir}/sysconfig/%{name}
-%{__install} -D -m 0600 %{SOURCE3} %{buildroot}%{_datadir}/%{name}/%{name}-sudoers
+%{__install} -D -m 0600 %{SOURCE3} %{buildroot}%{_sysconfdir}/sudoers.d/%{name}-sudoers
 %{__install} -D -m 0750 %{SOURCE4} %{buildroot}%{_libexecdir}/%{name}/restart.sh
 %{__install} -D -m 0755 %{SOURCE6} %{buildroot}%{_datadir}/%{name}/update-db-paths.sh
+%{__install} -D -m 0755 %{SOURCE7} %{buildroot}%{_prefix}/lib/firewalld/service/%{name}.xml
 
 %files
 %{_libdir}/%{name}/dashboard-ui/*
@@ -87,10 +89,12 @@ EOF
 %attr(755,root,root) %{_libdir}/%{name}/jellyfin
 %attr(644,root,root) %{_libdir}/%{name}/sosdocsunix.txt
 %attr(644,root,root) %{_unitdir}/%{name}.service
-%attr(600,root,root) %{_datadir}/%{name}/%{name}-sudoers
 %attr(755,root,root) %{_datadir}/%{name}/update-db-paths.sh
 %attr(750,root,root) %{_libexecdir}/%{name}/restart.sh
+%attr(644,root,root) %{_prefix}/lib/firewalld/service/%{name}.xml
+%attr(755,jellyfin,jellyfin) %dir %{_sysconfdir}/%{name}
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
+%config(noreplace) %attr(600,root,root) %{_sysconfdir}/sudoers.d/%{name}-sudoers
 %config(noreplace) %{_sysconfdir}/systemd/system/%{name}.service.d/override.conf
 %attr(-,jellyfin,jellyfin) %dir %{_sharedstatedir}/jellyfin
 %if 0%{?fedora}
@@ -119,9 +123,11 @@ exit 0
 echo -e "\e[31m
 To enable In-App service control copy the sudo-policy (be sure to check it contents) with:
 
-install -D -m 0600 %{_datadir}/%{name}/%{name}-sudoers %{_sysconfdir}/sudoers.d/%{name}-sudoers
+* Sat Jan 05 2019 Thomas Büttner <thomas@vergesslicher.tech> - 3.5.2-5
+- Add firewalld service.xml
 
-and uncomment JELLYFIN_RESTART_OPT in %{_sysconfdir}/sysconfig/%{name} \e[0m" >> /dev/stderr
+* Sat Jan 05 2019 Thomas Büttner <thomas@vergesslicher.tech> - 3.5.2-4
+- Re-added sudoers policy
 
 %changelog
 * Sat Jan 05 2019 Thomas Büttner <thomas@vergesslicher.tech> - 3.5.2-3
