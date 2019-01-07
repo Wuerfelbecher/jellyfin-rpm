@@ -1,25 +1,24 @@
 %global         debug_package %{nil}
-# jellyfin commit to package
-%global         commit f8a720d3d8adbdb1f092a42e592dae37ba3f25bb
-%global         gittag v3.5.2-5
-%global         shortcommit %(c=%{commit}; echo ${c:0:7}) 
+# jellyfin tag to package
+%global         gittag v10.0.0
 # Taglib-sharp commit of the submodule since github archive doesn't include submodules
 %global         taglib_commit ee5ab21742b71fd1b87ee24895582327e9e04776
 %global         taglib_shortcommit %(c=%{taglib_commit}; echo ${c:0:7})
 
 Name:           jellyfin
-Version:        3.5.2.git%{shortcommit}
-Release:        3%{?dist}
+Version:        10.0.0
+Release:        1%{?dist}
 Summary:        The Free Software Media Browser.
 License:        GPLv2
 URL:            https://jellyfin.media
-Source0:        https://github.com/%{name}/%{name}/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
+Source0:        https://github.com/%{name}/%{name}/archive/%{gittag}.tar.gz
 Source1:        jellyfin.service
 Source2:        jellyfin.env
 Source3:        jellyfin.sudoers
 Source4:        restart.sh
 Source5:        https://github.com/mono/taglib-sharp/archive/%{taglib_commit}/taglib-sharp-%{taglib_shortcommit}.tar.gz
 Source6:        update-db.sh
+Source7:        jellyfin-firewalld.xml
 
 %{?systemd_requires}
 BuildRequires:  systemd
@@ -45,7 +44,7 @@ Jellyfin is a free software media system that puts you in control of managing an
 
 
 %prep
-%autosetup -n %{name}-%{commit}
+%autosetup -n %{name}-%{version}
 pushd ThirdParty
     tar xf %{S:5}
     rm -rf taglib-sharp
@@ -63,17 +62,22 @@ export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
 dotnet publish --configuration Release --output='%{buildroot}%{_libdir}/jellyfin' --self-contained --runtime linux-x64
 %{__install} -D -m 0644 LICENSE %{buildroot}%{_datadir}/licenses/%{name}/LICENSE
 %{__install} -D -m 0644 debian/conf/jellyfin.service.conf %{buildroot}%{_sysconfdir}/systemd/system/%{name}.service.d/override.conf
+%{__install} -D -m 0644 debian/conf/logging.json %{buildroot}%{_sysconfdir}/%{name}/logging.json
 %{__mkdir} -p %{buildroot}%{_bindir}
 tee %{buildroot}%{_bindir}/jellyfin << EOF
 #!/bin/sh
 exec %{_libdir}/%{name}/%{name} \${@}
 EOF
 %{__mkdir} -p %{buildroot}%{_sharedstatedir}/jellyfin
+%{__mkdir} -p %{buildroot}%{_sysconfdir}/%{name}
+%{__mkdir} -p %{buildroot}%{_var}/log/jellyfin
+
 %{__install} -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/%{name}.service
 %{__install} -D -m 0644 %{SOURCE2} %{buildroot}%{_sysconfdir}/sysconfig/%{name}
-%{__install} -D -m 0600 %{SOURCE3} %{buildroot}%{_datadir}/%{name}/%{name}-sudoers
+%{__install} -D -m 0600 %{SOURCE3} %{buildroot}%{_sysconfdir}/sudoers.d/%{name}-sudoers
 %{__install} -D -m 0750 %{SOURCE4} %{buildroot}%{_libexecdir}/%{name}/restart.sh
 %{__install} -D -m 0755 %{SOURCE6} %{buildroot}%{_datadir}/%{name}/update-db-paths.sh
+%{__install} -D -m 0755 %{SOURCE7} %{buildroot}%{_prefix}/lib/firewalld/service/%{name}.xml
 
 %files
 %{_libdir}/%{name}/dashboard-ui/*
@@ -87,12 +91,16 @@ EOF
 %attr(755,root,root) %{_libdir}/%{name}/jellyfin
 %attr(644,root,root) %{_libdir}/%{name}/sosdocsunix.txt
 %attr(644,root,root) %{_unitdir}/%{name}.service
-%attr(600,root,root) %{_datadir}/%{name}/%{name}-sudoers
 %attr(755,root,root) %{_datadir}/%{name}/update-db-paths.sh
-%attr(750,root,root) %{_libexecdir}/%{name}/restart.sh
+%attr(755,root,root) %{_libexecdir}/%{name}/restart.sh
+%attr(644,root,root) %{_prefix}/lib/firewalld/service/%{name}.xml
+%attr(755,jellyfin,jellyfin) %dir %{_sysconfdir}/%{name}
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
+%config(noreplace) %attr(600,root,root) %{_sysconfdir}/sudoers.d/%{name}-sudoers
 %config(noreplace) %{_sysconfdir}/systemd/system/%{name}.service.d/override.conf
+%config(noreplace) %attr(644,jellyfin,jellyfin) %{_sysconfdir}/%{name}/logging.json
 %attr(-,jellyfin,jellyfin) %dir %{_sharedstatedir}/jellyfin
+%attr(-,jellyfin,jellyfin) %dir %{_var}/log/jellyfin
 %if 0%{?fedora}
 %license LICENSE
 %else
@@ -115,15 +123,17 @@ exit 0
 %postun
 %systemd_postun_with_restart jellyfin.service
 
-%posttrans
-echo -e "\e[31m
-To enable In-App service control copy the sudo-policy (be sure to check it contents) with:
-
-install -D -m 0600 %{_datadir}/%{name}/%{name}-sudoers %{_sysconfdir}/sudoers.d/%{name}-sudoers
-
-and uncomment JELLYFIN_RESTART_OPT in %{_sysconfdir}/sysconfig/%{name} \e[0m" >> /dev/stderr
-
 %changelog
+* Mon Jan 07 2019 Thomas Büttner <thomas@vergesslicher.tech> - 10.0.0-1
+- Bump version to 10.0.0
+- Add logging and config directories
+
+* Sat Jan 05 2019 Thomas Büttner <thomas@vergesslicher.tech> - 3.5.2-5
+- Add firewalld service.xml
+
+* Sat Jan 05 2019 Thomas Büttner <thomas@vergesslicher.tech> - 3.5.2-4
+- Re-added sudoers policy
+
 * Sat Jan 05 2019 Thomas Büttner <thomas@vergesslicher.tech> - 3.5.2-3
 - Added script for database migration
 
