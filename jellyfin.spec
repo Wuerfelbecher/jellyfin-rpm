@@ -117,17 +117,22 @@ exit 0
 %post
 # Move existing configuration to /etc/jellyfin and symlink config to /etc/jellyfin
 if [ $1 -gt 1 ] ; then
+    service_state=$(systemctl is-active jellyfin.service)
+    if [ "${service_state}" = "active" ]; then
+        systemctl stop jellyfin.service
+    fi
     if [ ! -L %{_sharedstatedir}/%{name}/config ]; then
-        service_state=$(systemctl is-active jellyfin.service)
-        if [ "${service_state}" = "active" ]; then
-            systemctl stop jellyfin.service
-        fi
         mv %{_sharedstatedir}/%{name}/config/* %{_sysconfdir}/%{name}/
         rmdir %{_sharedstatedir}/%{name}/config
         ln -sf %{_sysconfdir}/%{name}  %{_sharedstatedir}/%{name}/config
-        if [ "${service_state}" = "active" ]; then
-            systemctl start jellyfin.service
-        fi
+    fi
+    if [ ! -L %{_sharedstatedir}/%{name}/logs ]; then
+        mv %{_sharedstatedir}/%{name}/logs/* %{_var}/log/jellyfin
+        rmdir %{_sharedstatedir}/%{name}/logs
+        ln -sf %{_var}/log/jellyfin  %{_sharedstatedir}/%{name}/logs
+    fi
+    if [ "${service_state}" = "active" ]; then
+        systemctl start jellyfin.service
     fi
 fi
 %systemd_post jellyfin.service
