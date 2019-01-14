@@ -1,12 +1,12 @@
 %global         debug_package %{nil}
 # jellyfin tag to package
-%global         gittag v10.0.0
+%global         gittag v10.0.1
 # Taglib-sharp commit of the submodule since github archive doesn't include submodules
 %global         taglib_commit ee5ab21742b71fd1b87ee24895582327e9e04776
 %global         taglib_shortcommit %(c=%{taglib_commit}; echo ${c:0:7})
 
 Name:           jellyfin
-Version:        10.0.0
+Version:        10.0.1
 Release:        1%{?dist}
 Summary:        The Free Software Media Browser.
 License:        GPLv2
@@ -17,7 +17,7 @@ Source2:        jellyfin.env
 Source3:        jellyfin.sudoers
 Source4:        restart.sh
 Source5:        https://github.com/mono/taglib-sharp/archive/%{taglib_commit}/taglib-sharp-%{taglib_shortcommit}.tar.gz
-Source6:        update-db.sh
+Source6:        jellyfin.override.conf
 Source7:        jellyfin-firewalld.xml
 
 %{?systemd_requires}
@@ -52,17 +52,14 @@ pushd ThirdParty
 popd
 
 %build
-export DOTNET_CLI_TELEMETRY_OPTOUT=1
-export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
-dotnet build --runtime linux-x64
 
 %install
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
 dotnet publish --configuration Release --output='%{buildroot}%{_libdir}/jellyfin' --self-contained --runtime linux-x64
 %{__install} -D -m 0644 LICENSE %{buildroot}%{_datadir}/licenses/%{name}/LICENSE
-%{__install} -D -m 0644 debian/conf/jellyfin.service.conf %{buildroot}%{_sysconfdir}/systemd/system/%{name}.service.d/override.conf
-%{__install} -D -m 0644 debian/conf/logging.json %{buildroot}%{_sysconfdir}/%{name}/logging.json
+%{__install} -D -m 0644 %{SOURCE6} %{buildroot}%{_sysconfdir}/systemd/system/%{name}.service.d/override.conf
+%{__install} -D -m 0644 Jellyfin.Server/Resources/Configuration/logging.json %{buildroot}%{_sysconfdir}/%{name}/logging.json
 %{__mkdir} -p %{buildroot}%{_bindir}
 tee %{buildroot}%{_bindir}/jellyfin << EOF
 #!/bin/sh
@@ -75,25 +72,24 @@ EOF
 %{__install} -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/%{name}.service
 %{__install} -D -m 0644 %{SOURCE2} %{buildroot}%{_sysconfdir}/sysconfig/%{name}
 %{__install} -D -m 0600 %{SOURCE3} %{buildroot}%{_sysconfdir}/sudoers.d/%{name}-sudoers
-%{__install} -D -m 0750 %{SOURCE4} %{buildroot}%{_libexecdir}/%{name}/restart.sh
-%{__install} -D -m 0755 %{SOURCE6} %{buildroot}%{_datadir}/%{name}/update-db-paths.sh
-%{__install} -D -m 0755 %{SOURCE7} %{buildroot}%{_prefix}/lib/firewalld/service/%{name}.xml
+%{__install} -D -m 0755 %{SOURCE4} %{buildroot}%{_libexecdir}/%{name}/restart.sh
+%{__install} -D -m 0644 %{SOURCE7} %{buildroot}%{_prefix}/lib/firewalld/service/%{name}.xml
 
 %files
 %{_libdir}/%{name}/dashboard-ui/*
 %attr(755,root,root) %{_bindir}/%{name}
-%attr(644,root,root) %{_libdir}/%{name}/*.json
-%attr(644,root,root) %{_libdir}/%{name}/*.pdb
-%attr(755,root,root) %{_libdir}/%{name}/*.dll
-%attr(755,root,root) %{_libdir}/%{name}/*.so
-%attr(755,root,root) %{_libdir}/%{name}/*.a
-%attr(755,root,root) %{_libdir}/%{name}/createdump
+%{_libdir}/%{name}/*.json
+%{_libdir}/%{name}/*.pdb
+%{_libdir}/%{name}/*.dll
+%{_libdir}/%{name}/*.so
+%{_libdir}/%{name}/*.a
+%{_libdir}/%{name}/createdump
+# Needs 755 else only root can run it since binary build by dotnet is 744
 %attr(755,root,root) %{_libdir}/%{name}/jellyfin
-%attr(644,root,root) %{_libdir}/%{name}/sosdocsunix.txt
-%attr(644,root,root) %{_unitdir}/%{name}.service
-%attr(755,root,root) %{_datadir}/%{name}/update-db-paths.sh
-%attr(755,root,root) %{_libexecdir}/%{name}/restart.sh
-%attr(644,root,root) %{_prefix}/lib/firewalld/service/%{name}.xml
+%{_libdir}/%{name}/sosdocsunix.txt
+%{_unitdir}/%{name}.service
+%{_libexecdir}/%{name}/restart.sh
+%{_prefix}/lib/firewalld/service/%{name}.xml
 %attr(755,jellyfin,jellyfin) %dir %{_sysconfdir}/%{name}
 %config %{_sysconfdir}/sysconfig/%{name}
 %config(noreplace) %attr(600,root,root) %{_sysconfdir}/sudoers.d/%{name}-sudoers
@@ -144,6 +140,9 @@ fi
 %systemd_postun_with_restart jellyfin.service
 
 %changelog
+* Mon Jan 14 2019 Thomas Büttner <thomas@vergesslicher.tech> - 10.0.1-1
+- Bump to upsteam version 10.0.1
+
 * Mon Jan 07 2019 Thomas Büttner <thomas@vergesslicher.tech> - 10.0.0-1
 - Bump version to 10.0.0
 - Add logging and config directories
