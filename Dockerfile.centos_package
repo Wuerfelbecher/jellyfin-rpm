@@ -1,0 +1,17 @@
+FROM centos:7
+ARG HOME=/build
+RUN mkdir /build && \
+    yum install -y @buildsys-build rpmdevtools yum-plugins-core && \
+    rpm -Uvh https://packages.microsoft.com/config/rhel/7/packages-microsoft-prod.rpm && \
+    rpmdev-setuptree
+
+WORKDIR /build/rpmbuild
+COPY jellyfin.spec SPECS
+COPY . SOURCES
+
+RUN spectool -g -R SPECS/jellyfin.spec && \
+    rpmbuild -bs SPECS/jellyfin.spec && \
+    yum-builddep -y SRPMS/jellyfin-*.src.rpm && \
+    rpmbuild -bb SPECS/jellyfin.spec && \
+    mkdir /jellyfin && \
+    find . -name 'jellyfin-*.rpm' -print -exec cp {} /jellyfin \;

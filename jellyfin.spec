@@ -1,25 +1,24 @@
 %global         debug_package %{nil}
-# jellyfin commit to package
-%global         commit f8a720d3d8adbdb1f092a42e592dae37ba3f25bb
-%global         gittag v3.5.2-5
-%global         shortcommit %(c=%{commit}; echo ${c:0:7}) 
+# jellyfin tag to package
+%global         gittag v10.0.2
 # Taglib-sharp commit of the submodule since github archive doesn't include submodules
 %global         taglib_commit ee5ab21742b71fd1b87ee24895582327e9e04776
 %global         taglib_shortcommit %(c=%{taglib_commit}; echo ${c:0:7})
 
 Name:           jellyfin
-Version:        3.5.2.git%{shortcommit}
-Release:        3%{?dist}
+Version:        10.0.2
+Release:        1%{?dist}
 Summary:        The Free Software Media Browser.
 License:        GPLv2
 URL:            https://jellyfin.media
-Source0:        https://github.com/%{name}/%{name}/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
+Source0:        https://github.com/%{name}/%{name}/archive/%{gittag}.tar.gz
 Source1:        jellyfin.service
 Source2:        jellyfin.env
 Source3:        jellyfin.sudoers
 Source4:        restart.sh
 Source5:        https://github.com/mono/taglib-sharp/archive/%{taglib_commit}/taglib-sharp-%{taglib_shortcommit}.tar.gz
-Source6:        update-db.sh
+Source6:        jellyfin.override.conf
+Source7:        jellyfin-firewalld.xml
 
 %{?systemd_requires}
 BuildRequires:  systemd
@@ -45,7 +44,7 @@ Jellyfin is a free software media system that puts you in control of managing an
 
 
 %prep
-%autosetup -n %{name}-%{commit}
+%autosetup -n %{name}-%{version}
 pushd ThirdParty
     tar xf %{S:5}
     rm -rf taglib-sharp
@@ -53,46 +52,51 @@ pushd ThirdParty
 popd
 
 %build
-export DOTNET_CLI_TELEMETRY_OPTOUT=1
-export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
-dotnet build --runtime linux-x64
 
 %install
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
 dotnet publish --configuration Release --output='%{buildroot}%{_libdir}/jellyfin' --self-contained --runtime linux-x64
 %{__install} -D -m 0644 LICENSE %{buildroot}%{_datadir}/licenses/%{name}/LICENSE
-%{__install} -D -m 0644 debian/conf/jellyfin.service.conf %{buildroot}%{_sysconfdir}/systemd/system/%{name}.service.d/override.conf
+%{__install} -D -m 0644 %{SOURCE6} %{buildroot}%{_sysconfdir}/systemd/system/%{name}.service.d/override.conf
+%{__install} -D -m 0644 Jellyfin.Server/Resources/Configuration/logging.json %{buildroot}%{_sysconfdir}/%{name}/logging.json
 %{__mkdir} -p %{buildroot}%{_bindir}
 tee %{buildroot}%{_bindir}/jellyfin << EOF
 #!/bin/sh
 exec %{_libdir}/%{name}/%{name} \${@}
 EOF
 %{__mkdir} -p %{buildroot}%{_sharedstatedir}/jellyfin
+%{__mkdir} -p %{buildroot}%{_sysconfdir}/%{name}
+%{__mkdir} -p %{buildroot}%{_var}/log/jellyfin
+
 %{__install} -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/%{name}.service
 %{__install} -D -m 0644 %{SOURCE2} %{buildroot}%{_sysconfdir}/sysconfig/%{name}
-%{__install} -D -m 0600 %{SOURCE3} %{buildroot}%{_datadir}/%{name}/%{name}-sudoers
-%{__install} -D -m 0750 %{SOURCE4} %{buildroot}%{_libexecdir}/%{name}/restart.sh
-%{__install} -D -m 0755 %{SOURCE6} %{buildroot}%{_datadir}/%{name}/update-db-paths.sh
+%{__install} -D -m 0600 %{SOURCE3} %{buildroot}%{_sysconfdir}/sudoers.d/%{name}-sudoers
+%{__install} -D -m 0755 %{SOURCE4} %{buildroot}%{_libexecdir}/%{name}/restart.sh
+%{__install} -D -m 0644 %{SOURCE7} %{buildroot}%{_prefix}/lib/firewalld/service/%{name}.xml
 
 %files
 %{_libdir}/%{name}/dashboard-ui/*
 %attr(755,root,root) %{_bindir}/%{name}
-%attr(644,root,root) %{_libdir}/%{name}/*.json
-%attr(644,root,root) %{_libdir}/%{name}/*.pdb
-%attr(755,root,root) %{_libdir}/%{name}/*.dll
-%attr(755,root,root) %{_libdir}/%{name}/*.so
-%attr(755,root,root) %{_libdir}/%{name}/*.a
-%attr(755,root,root) %{_libdir}/%{name}/createdump
+%{_libdir}/%{name}/*.json
+%{_libdir}/%{name}/*.pdb
+%{_libdir}/%{name}/*.dll
+%{_libdir}/%{name}/*.so
+%{_libdir}/%{name}/*.a
+%{_libdir}/%{name}/createdump
+# Needs 755 else only root can run it since binary build by dotnet is 744
 %attr(755,root,root) %{_libdir}/%{name}/jellyfin
-%attr(644,root,root) %{_libdir}/%{name}/sosdocsunix.txt
-%attr(644,root,root) %{_unitdir}/%{name}.service
-%attr(600,root,root) %{_datadir}/%{name}/%{name}-sudoers
-%attr(755,root,root) %{_datadir}/%{name}/update-db-paths.sh
-%attr(750,root,root) %{_libexecdir}/%{name}/restart.sh
-%config(noreplace) %{_sysconfdir}/sysconfig/%{name}
+%{_libdir}/%{name}/sosdocsunix.txt
+%{_unitdir}/%{name}.service
+%{_libexecdir}/%{name}/restart.sh
+%{_prefix}/lib/firewalld/service/%{name}.xml
+%attr(755,jellyfin,jellyfin) %dir %{_sysconfdir}/%{name}
+%config %{_sysconfdir}/sysconfig/%{name}
+%config(noreplace) %attr(600,root,root) %{_sysconfdir}/sudoers.d/%{name}-sudoers
 %config(noreplace) %{_sysconfdir}/systemd/system/%{name}.service.d/override.conf
+%config(noreplace) %attr(644,jellyfin,jellyfin) %{_sysconfdir}/%{name}/logging.json
 %attr(-,jellyfin,jellyfin) %dir %{_sharedstatedir}/jellyfin
+%attr(-,jellyfin,jellyfin) %dir %{_var}/log/jellyfin
 %if 0%{?fedora}
 %license LICENSE
 %else
@@ -107,6 +111,26 @@ getent passwd jellyfin >/dev/null || \
 exit 0
 
 %post
+# Move existing configuration to /etc/jellyfin and symlink config to /etc/jellyfin
+if [ $1 -gt 1 ] ; then
+    service_state=$(systemctl is-active jellyfin.service)
+    if [ "${service_state}" = "active" ]; then
+        systemctl stop jellyfin.service
+    fi
+    if [ ! -L %{_sharedstatedir}/%{name}/config ]; then
+        mv %{_sharedstatedir}/%{name}/config/* %{_sysconfdir}/%{name}/
+        rmdir %{_sharedstatedir}/%{name}/config
+        ln -sf %{_sysconfdir}/%{name}  %{_sharedstatedir}/%{name}/config
+    fi
+    if [ ! -L %{_sharedstatedir}/%{name}/logs ]; then
+        mv %{_sharedstatedir}/%{name}/logs/* %{_var}/log/jellyfin
+        rmdir %{_sharedstatedir}/%{name}/logs
+        ln -sf %{_var}/log/jellyfin  %{_sharedstatedir}/%{name}/logs
+    fi
+    if [ "${service_state}" = "active" ]; then
+        systemctl start jellyfin.service
+    fi
+fi
 %systemd_post jellyfin.service
 
 %preun
@@ -115,15 +139,24 @@ exit 0
 %postun
 %systemd_postun_with_restart jellyfin.service
 
-%posttrans
-echo -e "\e[31m
-To enable In-App service control copy the sudo-policy (be sure to check it contents) with:
-
-install -D -m 0600 %{_datadir}/%{name}/%{name}-sudoers %{_sysconfdir}/sudoers.d/%{name}-sudoers
-
-and uncomment JELLYFIN_RESTART_OPT in %{_sysconfdir}/sysconfig/%{name} \e[0m" >> /dev/stderr
-
 %changelog
+* Wed Jan 16 2019 Thomas Büttner <thomas@vergesslicher.tech> - 10.0.2-1
+- Bump to upsteam version 10.0.2
+
+* Mon Jan 14 2019 Thomas Büttner <thomas@vergesslicher.tech> - 10.0.1-1
+- Bump to upsteam version 10.0.1
+
+* Mon Jan 07 2019 Thomas Büttner <thomas@vergesslicher.tech> - 10.0.0-1
+- Bump version to 10.0.0
+- Add logging and config directories
+- Add %post script to move exitsting config to /etc/jellyfin and symlink it.
+
+* Sat Jan 05 2019 Thomas Büttner <thomas@vergesslicher.tech> - 3.5.2-5
+- Add firewalld service.xml
+
+* Sat Jan 05 2019 Thomas Büttner <thomas@vergesslicher.tech> - 3.5.2-4
+- Re-added sudoers policy
+
 * Sat Jan 05 2019 Thomas Büttner <thomas@vergesslicher.tech> - 3.5.2-3
 - Added script for database migration
 
