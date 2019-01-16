@@ -1,0 +1,28 @@
+FROM fedora:29 AS builder
+ARG HOME=/build
+RUN mkdir /build && \
+    dnf install -y @buildsys-build rpmdevtools dnf-plugins-core && \
+    dnf copr enable -y @dotnet-sig/dotnet && \
+    rpmdev-setuptree
+
+WORKDIR /build/rpmbuild
+COPY jellyfin.spec SPECS
+COPY . SOURCES
+
+RUN spectool -g -R SPECS/jellyfin.spec && \
+    rpmbuild -bs SPECS/jellyfin.spec && \
+    dnf build-dep -y SRPMS/jellyfin-*.src.rpm && \
+    rpmbuild -bb SPECS/jellyfin.spec && \
+    mkdir /jellyfin && \
+    find . -name 'jellyfin-*.rpm' -print -exec cp {} /jellyfin \;
+
+
+FROM fedora:29
+COPY --from=builder /jellyfin/*.rpm /rpms/
+RUN dnf upgrade -y && \
+    dnf install -y https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm && \
+    dnf install -y /rpms/jellyfin-*.x86_64.rpm && \
+    dnf clean all -y && rm -rf /rpms
+VOLUME /var/lib/jellyfin
+EXPOSE 8096
+ENTRYPOINT ["/usr/bin/jellyfin", "-programdata", "/var/lib/jellyfin"]

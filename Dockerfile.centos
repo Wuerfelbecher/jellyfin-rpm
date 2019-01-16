@@ -1,0 +1,27 @@
+FROM centos:7 AS builder
+ARG HOME=/build
+RUN mkdir /build && \
+    yum install -y @buildsys-build rpmdevtools yum-plugins-core && \
+    rpm -Uvh https://packages.microsoft.com/config/rhel/7/packages-microsoft-prod.rpm && \
+    rpmdev-setuptree
+
+WORKDIR /build/rpmbuild
+COPY jellyfin.spec SPECS
+COPY . SOURCES
+
+RUN spectool -g -R SPECS/jellyfin.spec && \
+    rpmbuild -bs SPECS/jellyfin.spec && \
+    yum-builddep -y SRPMS/jellyfin-*.src.rpm && \
+    rpmbuild -bb SPECS/jellyfin.spec && \
+    mkdir /jellyfin && \
+    find . -name 'jellyfin-*.rpm' -print -exec cp {} /jellyfin \;
+
+FROM centos:7
+COPY --from=builder /jellyfin/*.rpm /rpms/
+RUN yum upgrade -y && \
+    yum localinstall -y --nogpgcheck https://download1.rpmfusion.org/free/el/rpmfusion-free-release-7.noarch.rpm  && \
+    yum localinstall -y /rpms/jellyfin-*.x86_64.rpm && \
+    yum clean all -y && rm -rf /rpms
+VOLUME /var/lib/jellyfin
+EXPOSE 8096
+ENTRYPOINT ["/usr/bin/jellyfin", "-programdata", "/var/lib/jellyfin"]
